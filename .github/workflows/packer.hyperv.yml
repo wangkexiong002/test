@@ -1,0 +1,24 @@
+name: Packer Hyperv
+on:
+  - push
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use latest Packer
+        uses: hashicorp-contrib/setup-packer@v1
+        with:
+          packer-version: 1.5.6
+
+      - name: Build image from template
+        shell: cmd
+        run: |
+            DISM /Online /Enable-Feature /All /FeatureName:Microsoft-Hyper-V /NoRestart
+            packer build -only hyperv-iso ubuntu-focal-amd64.json
+        env:
+            VAGRANT_CLOUD_TOKEN: ${{ secrets.VAGRANT_CLOUD_TOKEN }}
