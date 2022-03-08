@@ -1,4 +1,4 @@
 DOCKER_REPO=wangkexiong/python
 DOCKER_TAG=2.7.18
 DOCKER_TAG_ONLY=true
-DOCKER_TEST_CMD=deno -V
+DOCKER_TEST_CMD=python --version
