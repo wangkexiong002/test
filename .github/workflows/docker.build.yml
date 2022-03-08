@@ -1,0 +1,115 @@
+name: Docker Build
+on:
+  push:
+    paths:
+      - '**/Dockerfile'
+      - '**/Dockervar'
+jobs:
+  workingdir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - id: changed-files
+        uses: tj-actions/changed-files@v11.9
+        with:
+          files: |
+            Dockerfile$
+            Dockervar$
+      - name: Get Updated Directories
+        id: changed-dirs
+        run: |
+          RESULT=
+          for file in ${{ steps.changed-files.outputs.all_modified_files }}; do
+            RESULT="$(dirname $file) $RESULT"
+          done
+          RESULT=$(echo $RESULT | sed 's/ /\n/g' | sort | uniq | xargs)
+          RESULT=$(echo $RESULT | jq -Rcr 'split(" ")')
+          RESULT="{\"dir\":$RESULT}"
+          echo "::set-output name=all::$RESULT"
+    outputs:
+      all: ${{ steps.changed-dirs.outputs.all }}
+  build:
+    needs: workingdir
+    strategy:
+      matrix: ${{ fromJson(needs.workingdir.outputs.all) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Import env variables
+        run: |
+            if [ -f ${{ matrix.dir }}/Dockervar ]; then
+              grep -v ^# ${{ matrix.dir }}/Dockervar >> ${GITHUB_ENV} || true
+            fi
+      - name: Prepare Build Parameters
+        id: config
+        run: |
+            if [ -n "$DOCKER_REPO" ]; then
+              BUILD_TAGS="$DOCKER_REPO:latest"
+              if [ -n "$DOCKER_TAG" ]; then
+                if [ -n "$DOCKER_TAG_ONLY" ]; then
+                  BUILD_TAGS="$DOCKER_REPO:$DOCKER_TAG"
+                else
+                  BUILD_TAGS="$DOCKER_REPO:$DOCKER_TAG,$BUILD_TAGS"
+                fi
+              else
+                DOCKER_TAG="latest"
+                echo "::set-output name=DOCKER_TAG::latest"
+              fi
+              DOCKER_PUSH=true
+            else
+              BUILD_TAGS="test:latest"
+              DOCKER_PUSH=false
+
+              echo "::set-output name=DOCKER_REPO::test"
+              echo "::set-output name=DOCKER_TAG::latest"
+            fi
+            echo "::set-output name=tags::$BUILD_TAGS"
+            echo "::set-output name=push::$DOCKER_PUSH"
+
+            if [ -f ${{ matrix.dir }}/Dockervar ]; then
+              BUILD_ARGS=$(cat ${{ matrix.dir }}/Dockervar | grep -v ^# | grep -v ^DOCKER | grep "\S" | tr -d '\r')
+              OTHER_ARGS=$(cat ${{ matrix.dir }}/Dockervar | grep -v ^# | grep ^DOCKER.*= | tr -d '\r')
+
+              BUILD_ARGS="${BUILD_ARGS//'%'/'%25'}"
+              BUILD_ARGS="${BUILD_ARGS//$'\n'/'%0A'}"
+              BUILD_ARGS="${BUILD_ARGS//$'\r'/'%0D'}"
+              echo "::set-output name=build-args::$BUILD_ARGS"
+
+              while read -r line; do
+                read -r VAR RESULT < <(awk -F= '{print $1, $2}' <<< "$line")
+                echo "::set-output name=$VAR::$RESULT"
+              done< <(printf '%s\n' "$OTHER_ARGS")
+            fi
+      - uses: docker/setup-qemu-action@v1
+      - uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/build-push-action@v2
+        with:
+          context: ${{ matrix.dir }}
+          build-args: ${{ steps.config.outputs.build-args }}
+          load: true
+          tags: ${{ steps.config.outputs.tags }}
+      - name: Test Build Image
+        run: |
+          if [ -n "$DOCKER_TEST_ENTRYPOINT" ] || [ -n "$DOCKER_TEST_CMD" ]; then
+            DOCKER_TEST="docker run -t"
+            [ -n "$DOCKER_TEST_ENTRYPOINT" ] && DOCKER_TEST="$DOCKER_TEST --entrypoint=$DOCKER_TEST_ENTRYPOINT"
+            DOCKER_TEST="$DOCKER_TEST $DOCKER_REPO:$DOCKER_TAG"
+            [ -n "$DOCKER_TEST_CMD" ] && DOCKER_TEST="$DOCKER_TEST $DOCKER_TEST_CMD"
+            echo ${DOCKER_TEST} > /tmp/DOCKER_TEST.sh
+            /bin/bash /tmp/DOCKER_TEST.sh
+          else
+            echo "SKIP testing..."
+          fi
+      - uses: docker/build-push-action@v2
+        with:
+          context: ${{ matrix.dir }}
+          platforms: ${{ env.DOCKER_PLATFORMS }}
+          build-args: ${{ steps.config.outputs.build-args }}
+          tags: ${{ steps.config.outputs.tags }}
+          push: ${{ steps.config.outputs.push }}
