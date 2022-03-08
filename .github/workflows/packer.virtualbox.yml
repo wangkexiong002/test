@@ -1,0 +1,36 @@
+name: Packer Virtualbox
+on:
+  - push
+
+jobs:
+  build:
+    runs-on: macos-10.15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use Packer
+        uses: hashicorp-contrib/setup-packer@v1
+        with:
+          packer-version: 1.5.6
+
+      - name: Use latest RClone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          rclone version
+
+      - name: Prepare iso file
+        run: |
+          ISOFILE=$(jq -r '.variables | [.mirror,.mirror_directory,.iso_name] | join("/")' ubuntu-xenial.json)
+          mkdir -p packer_iso
+          if ! wget ${ISOFILE} -P packer_iso; then
+            echo "NEED RCLONE"
+          fi
+          
+          echo "DOING RCLONE"
+
+#      - name: Build image from template
+#        run: packer build -only virtualbox-iso ubuntu-xenial.json
+#        env:
+#            VAGRANT_CLOUD_TOKEN: ${{ secrets.VAGRANT_CLOUD_TOKEN }}

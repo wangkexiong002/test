@@ -13,3 +13,4 @@ RUN cd buildroot-${BR_VERSION} \
 FROM scratch
 
 COPY --from=BUILDER /home/br-user/rootfs /
+
