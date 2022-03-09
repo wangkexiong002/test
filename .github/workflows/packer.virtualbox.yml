@@ -15,22 +15,30 @@ jobs:
         with:
           packer-version: 1.5.6
 
-      - name: Use latest RClone
+      - name: Get RClone ready
         run: |
           curl https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+          echo ${RCLONE_CONF} | base64 -d > ~/.config/rclone/rclone.conf
           rclone version
+        env:
+          RCLONE_CONF: ${{ secrets.RCLONE_GDRIVE }}
 
       - name: Prepare iso file
         run: |
           ISOFILE=$(jq -r '.variables | [.mirror,.mirror_directory,.iso_name] | join("/")' ubuntu-xenial.json)
           mkdir -p packer_iso
-          if ! wget ${ISOFILE} -P packer_iso; then
-            echo "NEED RCLONE"
+          if wget ${ISOFILE} -P packer_iso; then
+            echo "Sync iso to GDrive"
+            rclone sync packer_iso packer-build:/packer_iso/ubuntu-xenial
+          else
+            echo "Retrive iso from GDrive"
+            rclone sync packer-build:/packer_iso/ubuntu-xenial packer_iso
           fi
-          
-          echo "DOING RCLONE"
+          rclone ls packer-build:/
 
-#      - name: Build image from template
-#        run: packer build -only virtualbox-iso ubuntu-xenial.json
-#        env:
-#            VAGRANT_CLOUD_TOKEN: ${{ secrets.VAGRANT_CLOUD_TOKEN }}
+      - name: Build image from template
+        run: packer build -only virtualbox-iso ubuntu-xenial.json
+        env:
+            VAGRANT_CLOUD_TOKEN: ${{ secrets.VAGRANT_CLOUD_TOKEN }}
+
