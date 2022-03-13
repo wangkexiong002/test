@@ -1,0 +1,2 @@
+DOCKER_REPO=wangkexiong/powerline-fontpatcher
+DOCKER_PLATFORMS=linux/amd64,linux/arm64
