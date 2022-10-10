@@ -1,0 +1,50 @@
+name: Packer Virtualbox
+on:
+  - push
+
+jobs:
+  PackerBuild:
+    strategy:
+      fail-fast: false
+      matrix:
+        template: [ubuntu-jammy-live]
+    runs-on: macos-10.15
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Use Packer
+      uses: hashicorp-contrib/setup-packer@v1
+      with:
+        packer-version: 1.8.3
+
+    - name: Get RClone ready
+      run: |
+        curl https://rclone.org/install.sh | sudo bash
+        mkdir -p ~/.config/rclone
+        echo ${RCLONE_CONF} | base64 -d > ~/.config/rclone/rclone.conf
+        rclone version
+      env:
+        RCLONE_CONF: ${{ secrets.RCLONE_GDRIVE }}
+
+    - name: Prepare iso file
+      run: |
+        cd packer.build
+        ISOFILE=$(jq -r '.variables | [.mirror,.mirror_directory,.iso_name] | join("/")' ${{ matrix.template }}.json)
+        mkdir -p packer_iso
+        if wget ${ISOFILE} -P packer_iso; then
+          echo "Sync iso to GDrive"
+          rclone sync packer_iso packer-build:/packer_iso/${{ matrix.template }}
+        else
+          echo "Retrive iso from GDrive"
+          rclone sync packer-build:/packer_iso/${{ matrix.template }} packer_iso
+        fi
+        rclone ls packer-build:/
+
+    - name: Build image from template
+      run: |
+        cd packer.build
+        jq 'del(."post-processors"[] | select(."type"=="vagrant-cloud") )' ${{ matrix.template }}.json | packer build -debug -only virtualbox-iso -
+      env:
+        VAGRANT_CLOUD_TOKEN: ${{ secrets.VAGRANT_CLOUD_TOKEN }}
