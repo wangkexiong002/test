@@ -1,6 +1,8 @@
 name: Packer Virtualbox
 on:
-  - push
+  push:
+    paths:
+      - 'packer.build/*.json'
 
 jobs:
   PackerBuild:
