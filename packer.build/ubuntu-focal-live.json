@@ -114,16 +114,22 @@
   ],
   "post-processors": [
     {
-      "type": "vagrant",
-      "compression_level": "9",
-      "output": "{{user `build_directory`}}/{{user `box_basename`}}-{{.Provider}}.box"
+      "type": "shell-local",
+      "inline": ["echo Preparing for uploading..."]
     },
-    {
-      "type": "vagrant-cloud",
-      "box_tag": "{{user `cloud_tag`}}",
-      "access_token": "{{user `cloud_token`}}",
-      "version": "{{user `cloud_version`}}"
-    }
+    [
+      {
+        "type": "vagrant",
+        "compression_level": "9",
+        "output": "{{user `build_directory`}}/{{user `box_basename`}}-{{.Provider}}.box"
+      },
+      {
+        "type": "vagrant-cloud",
+        "box_tag": "{{user `cloud_tag`}}",
+        "access_token": "{{user `cloud_token`}}",
+        "version": "{{user `cloud_version`}}"
+      }
+    ]
   ],
   "variables": {
     "build_directory": "packer_build",

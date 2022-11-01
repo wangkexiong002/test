@@ -5,7 +5,7 @@ case "${PACKER_BUILDER_TYPE}" in
 esac
 
 set +e
-swapuuid=$(/sbin/blkid -o value -l -s UUID -t TYPE=swap)
+swapuuid=$(blkid -o value -l -s UUID -t TYPE=swap)
 case "$?" in
   2|0) ;;
   *) exit 1 ;;
@@ -16,13 +16,13 @@ if [ "x${swapuuid}" != "x" ]; then
   # Whiteout the swap partition to reduce box size
   # Swap is disabled till reboot
   swappart=$(readlink -f /dev/disk/by-uuid/$swapuuid)
-  /sbin/swapoff "${swappart}"
+  swapoff "${swappart}"
   dd if=/dev/zero of="${swappart}" bs=1M || echo "dd exit code $? is suppressed"
-  /sbin/mkswap -U "${swapuuid}" "${swappart}"
+  mkswap -U "${swapuuid}" "${swappart}"
 else
   swapfile=$(cat /etc/fstab | grep -v "^#" | awk '{if ($3=="swap") printf $1}')
   if [ "x${swapfile}" != "x" ] && [ -f ${swapfile} ]; then
-    /sbin/swapoff ${swapfile}
+    swapoff ${swapfile}
     sed -i "/^${swapfile//\//\\/}/d" /etc/fstab
 
     # The reason why not using fallocate
@@ -32,12 +32,14 @@ else
 
   mkdir -p /swap
   dd if=/dev/zero of=/swap/swapfile count=2048 bs=1M
-  chmod 600 /swap/swapfile
-  /sbin/mkswap /swap/swapfile
-  echo '/swap/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
+  chmod 0600 /swap/swapfile
+  mkswap /swap/swapfile
+  echo '/swap/swapfile none swap defaults 0 0' | sudo tee -a /etc/fstab
 fi
 
 # Whiteout root
-dd if=/dev/zero of=/tmp/whitespace bs=1M || echo "dd exit code $? is suppressed";
-rm -rf /tmp/whitespace
+zerofile=$(mktemp /zerofile.XXXXX)
+dd if=/dev/zero of="$zerofile" bs=1M || echo "dd exit code $? is suppressed"
+rm -f "$zerofile"
+sync
 
