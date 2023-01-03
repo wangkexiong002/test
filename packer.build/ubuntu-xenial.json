@@ -29,7 +29,7 @@
         " -- ",
         "<enter><wait>"
       ],
-      "boot_wait": "5s",
+      "boot_wait": "{{user `boot_wait`}}",
       "headless": "{{user `headless`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
       "output_directory": "{{user `build_directory`}}/packer-{{user `template`}}-virtualbox",
@@ -84,7 +84,7 @@
         " -- ",
         "<enter><wait>"
       ],
-      "boot_wait": "5s",
+      "boot_wait": "{{user `boot_wait`}}",
       "headless": "{{user `headless`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
       "output_directory": "{{user `build_directory`}}/packer-{{user `template`}}-hyperv",
@@ -153,6 +153,7 @@
     ]
   ],
   "variables": {
+    "boot_wait": "60s",
     "build_directory": "packer_build",
     "http_directory": "packer_script/ubuntu/http-legacy",
     "preseed_path": "preseed.cfg",

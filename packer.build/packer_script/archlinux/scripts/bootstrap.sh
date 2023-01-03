@@ -12,7 +12,6 @@ fi
 HOSTNAME='archlinux'
 KEYMAP='us'
 LANGUAGE='en_US.UTF-8'
-PASSWORD=$(/usr/bin/openssl passwd -crypt 'vagrant')
 TIMEZONE='UTC'
 
 CONFIG_SCRIPT='/usr/local/bin/arch-config.sh'
@@ -82,10 +81,10 @@ echo "++++ ${SCRIPT_NAME}: Generating the filesystem table.."
 echo "${SWAPFILE} none swap defaults 0 0" >> ${TARGET_DIR}/etc/fstab
 
 echo "++++ ${SCRIPT_NAME}: Generating the system configuration script.."
-/usr/bin/install --mode=0755 /dev/null "${TARGET_DIR}${CONFIG_SCRIPT}"
+/usr/bin/install --mode=0755 /dev/null "${TARGET_DIR}/${CONFIG_SCRIPT}"
 
 CONFIG_SCRIPT_SHORT=$(/usr/bin/basename "$CONFIG_SCRIPT")
-cat <<-EOF > "${TARGET_DIR}${CONFIG_SCRIPT}"
+cat <<-EOF > "${TARGET_DIR}/${CONFIG_SCRIPT}"
   echo ">>>> ${CONFIG_SCRIPT_SHORT}: Configuring hostname, timezone, and keymap.."
   echo '${HOSTNAME}' > /etc/hostname
   /usr/bin/ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
@@ -104,7 +103,7 @@ cat <<-EOF > "${TARGET_DIR}${CONFIG_SCRIPT}"
   /usr/bin/mkinitcpio -p linux
 
   echo ">>>> ${CONFIG_SCRIPT_SHORT}: Setting root pasword.."
-  /usr/bin/usermod --password ${PASSWORD} root
+  echo -e 'vagrant\nvagrant' | /usr/bin/passwd root
 
   echo ">>>> ${CONFIG_SCRIPT_SHORT}: Configuring network.."
   # Disable systemd Predictable Network Interface Names and revert to traditional interface names
@@ -123,7 +122,8 @@ cat <<-EOF > "${TARGET_DIR}${CONFIG_SCRIPT}"
 
   # Vagrant-specific configuration
   echo ">>>> ${CONFIG_SCRIPT_SHORT}: Creating vagrant user.."
-  /usr/bin/useradd --password ${PASSWORD} --comment 'Vagrant User' --create-home --user-group vagrant
+  /usr/bin/useradd --comment 'Vagrant User' --create-home --user-group vagrant
+  echo -e 'vagrant\nvagrant' | /usr/bin/passwd vagrant
 
   echo ">>>> ${CONFIG_SCRIPT_SHORT}: Configuring sudo.."
   echo 'Defaults env_keep += "SSH_AUTH_SOCK"' > /etc/sudoers.d/10_vagrant
@@ -133,7 +133,7 @@ EOF
 
 echo "++++ ${SCRIPT_NAME}: Entering chroot and configuring system.."
 /usr/bin/arch-chroot ${TARGET_DIR} ${CONFIG_SCRIPT}
-rm "${TARGET_DIR}${CONFIG_SCRIPT}"
+rm "${TARGET_DIR}/${CONFIG_SCRIPT}"
 
 echo "++++ ${SCRIPT_NAME}: Completing installation.."
 /usr/bin/sleep 3

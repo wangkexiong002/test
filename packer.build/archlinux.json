@@ -3,11 +3,11 @@
     {
       "type": "virtualbox-iso",
       "boot_command": [
-        "<enter><wait10><wait10><wait10><wait10>",
+        "<enter><enter>",
         "/usr/bin/curl -O http://{{ .HTTPIP }}:{{ .HTTPPort }}/prepare.archlinux.sh<enter><wait>",
         "/usr/bin/bash ./prepare.archlinux.sh<enter>"
       ],
-      "boot_wait": "5s",
+      "boot_wait": "{{user `boot_wait`}}",
       "headless": "{{user `headless`}}",
       "shutdown_command": "sudo systemctl poweroff",
       "output_directory": "{{user `build_directory`}}/packer-{{user `template`}}-virtualbox",
@@ -74,6 +74,7 @@
     ]
   ],
   "variables": {
+    "boot_wait": "60s",
     "build_directory": "packer_build",
     "http_directory": "packer_script/archlinux/http",
     "cpus": "1",

@@ -3,11 +3,6 @@
     {
       "type": "virtualbox-iso",
       "boot_command": [
-                " <wait>",
-                " <wait>",
-                " <wait>",
-                " <wait>",
-                " <wait>",
                 "c",
                 "<wait>",
                 "set gfxpayload=keep",
@@ -24,7 +19,7 @@
                 "<enter><wait>",
                 "boot<enter><wait>"
       ],
-      "boot_wait": "5s",
+      "boot_wait": "{{user `boot_wait`}}",
       "headless": "{{user `headless`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
       "output_directory": "{{user `build_directory`}}/packer-{{user `template`}}-virtualbox",
@@ -53,11 +48,6 @@
     {
       "type": "hyperv-iso",
       "boot_command": [
-                " <wait>",
-                " <wait>",
-                " <wait>",
-                " <wait>",
-                " <wait>",
                 "c",
                 "<wait>",
                 "set gfxpayload=keep",
@@ -74,7 +64,7 @@
                 "<enter><wait>",
                 "boot<enter><wait>"
       ],
-      "boot_wait": "5s",
+      "boot_wait": "{{user `boot_wait`}}",
       "headless": "{{user `headless`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
       "output_directory": "{{user `build_directory`}}/packer-{{user `template`}}-hyperv",
@@ -145,6 +135,7 @@
     ]
   ],
   "variables": {
+    "boot_wait": "60s",
     "build_directory": "packer_build",
     "http_directory": "packer_script/ubuntu/http-subiquity",
     "cpus": "1",

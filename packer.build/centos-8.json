@@ -5,7 +5,7 @@
       "boot_command": [
         "<up><wait><tab> inst.text inst.ks=http://{{.HTTPIP}}:{{.HTTPPort}}/{{user `ks_path`}} hostname={{user `host_name`}}<enter><wait>"
       ],
-      "boot_wait": "5s",
+      "boot_wait": "{{user `boot_wait`}}",
       "headless": "{{user `headless`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S /sbin/halt -h -p",
       "output_directory": "{{user `build_directory`}}/packer-{{user `template`}}-virtualbox",
@@ -42,7 +42,7 @@
       "boot_command": [
         "<up><wait><tab> inst.text inst.ks=http://{{.HTTPIP}}:{{.HTTPPort}}/{{user `ks_path`}} hostname={{user `host_name`}}<enter><wait>"
       ],
-      "boot_wait": "5s",
+      "boot_wait": "{{user `boot_wait`}}",
       "headless": "{{user `headless`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S /sbin/halt -h -p",
       "output_directory": "{{user `build_directory`}}/packer-{{user `template`}}-hyperv",
@@ -110,6 +110,7 @@
     ]
   ],
   "variables": {
+    "boot_wait": "60s",
     "build_directory": "packer_build",
     "http_directory": "packer_script/centos/http",
     "ks_path": "ks8.cfg",

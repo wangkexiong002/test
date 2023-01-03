@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        template: [ubuntu-bionic]
+        template: [centos-7, centos-8, ubuntu-bionic, ubuntu-focal-live, ubuntu-jammy-live, archlinux]
     runs-on: macos-10.15
 
     steps:
